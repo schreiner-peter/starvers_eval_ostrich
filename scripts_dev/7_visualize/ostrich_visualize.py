@@ -1,4 +1,3 @@
-# scripts/visualize_ostrich.py
 import os, sys, logging
 from pathlib import Path
 import pandas as pd
@@ -14,30 +13,16 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 
-# ---------------------------------------
-# Params (CLI)
-# ---------------------------------------
-# Usage examples:
-#   python scripts/visualize_ostrich.py data/bearb_day/results bearb_p
-#   python scripts/visualize_ostrich.py data/bearb_day/results "bearb_p,bearb_po"
-#   python scripts/visualize_ostrich.py "data/bearb_day/results;data/bearb_hour/results" "bearb_p,bearb_po"
-#
-# Arg1: one or multiple results dirs, separated by ';'
-# Arg2: one or multiple prefixes (file prefixes), separated by ','
-#if len(sys.argv) != 3:
-#    print("Usage: python scripts/visualize_ostrich.py <results_dir[;results_dir2...]> <prefix[,prefix2...]>")
-#    sys.exit(1)
-
-RESULT_DIRS = [Path("data/bearb_day/results").resolve()] #[Path(p).resolve() for p in sys.argv[1].split(";") if p]
-PREFIXES = ["bearb_p", "bearb_po"] #[p.strip() for p in sys.argv[2].split(",") if p.strip()]
+RESULT_DIRS = [Path("data/bearb_day/results").resolve()]
+PREFIXES = ["bearb_p", "bearb_po"]
 
 # ---------------------------------------
 # Helpers
 # ---------------------------------------
 
 mpl.rcParams.update({
-    "pdf.fonttype": 3,   # Type 3 fonts (text as shapes, not selectable)
-    "ps.fonttype": 3,    # same for PS if you ever use it
+    "pdf.fonttype": 3,
+    "ps.fonttype": 3,
 })
 
 def safe_save(figpath: Path, dpi_png=600, also_png=False):
@@ -50,7 +35,7 @@ def safe_save(figpath: Path, dpi_png=600, also_png=False):
 
     plt.tight_layout()
 
-    # Always save a PDF (vector; text converted to paths by rcParams above)
+    # Always save a PDF 
     pdf_path = figpath.with_suffix(".pdf")
     plt.savefig(pdf_path, bbox_inches="tight", pad_inches=0.02)
 
@@ -65,7 +50,6 @@ def read_csv(path: Path) -> pd.DataFrame | None:
         logging.warning(f"Missing file: {path}")
         return None
 
-    # Try a few increasingly-forgiving parses
     attempts = [
         # 1) Fast path: C engine, UTF-8
         dict(sep=";", engine="c", encoding="utf-8", dtype_backend=None),
@@ -151,7 +135,21 @@ def plot_ingestion(ingestion_df: pd.DataFrame, out_dir: Path, dataset:str):
     ax = plt.gca()
     make_arrows(ax)
     ax.set_yscale("log")
-    ax.set_ylim(1e-3, 1e-0)
+    lower_end = 1e-3
+    upper_end = 1e+3
+    if dataset == 'bearb_day':
+        lower_end = 1e-2
+        upper_end = 1e+1
+    elif dataset == 'bearb_hour':
+        lower_end = 1e-2
+        upper_end = 1e+3
+    elif dataset == 'bearc':
+        lower_end = 1e-2
+        upper_end = 1e+1
+    else:
+        pass
+
+    ax.set_ylim(lower_end, upper_end)
 
     plt.xlabel("Version")
     plt.ylabel("Duration (s)")
@@ -159,30 +157,30 @@ def plot_ingestion(ingestion_df: pd.DataFrame, out_dir: Path, dataset:str):
     safe_save(out_dir / f"{dataset}_ingestion_time.png")
 
     # Cumulative size
-    #if "accsize" in ingestion_df.columns:
-    #    ingestion_df["size_mb"] = pd.to_numeric(ingestion_df['accsize'], errors="coerce") / (1024 ** 2)
-    #    plt.figure()
-    #    plt.plot(ingestion_df["version"], ingestion_df["size_mb"], linestyle='dashed', marker="o", markersize=7, markerfacecolor='none',
-    #         markeredgewidth=1, linewidth=0.5, color='black', markevery=markevery)
-    #    
-    #    upper = 0
-    #    size_max = float(np.nanmax(ingestion_df["size_mb"].to_numpy(dtype=float)))
-    #    exp = math.floor(math.log10(size_max))
-    #    for m in (1, 2, 5, 10):
-    #       candidate = m * (10 ** exp)
-    #       if candidate >= size_max:
-    #           upper = candidate
-    #           break
-    #    upper = min(upper, 1000)
-    #
-    #    ax = plt.gca()
-    #    ax.set_yscale("linear")
-    #    ax.set_ylim(0, upper)
-    #  
-    #     plt.xlabel("Version")
-    #     plt.ylabel("Cumulative size (MB)")
-    #     plt.title(f"Cumulative store size – {dataset}")
-    #     safe_save(out_dir / f"{dataset}_cumulative_size.png")
+    if "accsize" in ingestion_df.columns:
+        ingestion_df["size_mb"] = pd.to_numeric(ingestion_df['accsize'], errors="coerce") / (1024 ** 2)
+        plt.figure()
+        plt.plot(ingestion_df["version"], ingestion_df["size_mb"], linestyle='solid', marker="o", markersize=7, markerfacecolor='none',
+             markeredgewidth=1, linewidth=2, color='black', markevery=markevery)
+        
+        upper = 0
+        size_max = float(np.nanmax(ingestion_df["size_mb"].to_numpy(dtype=float)))
+        exp = math.floor(math.log10(size_max))
+        for m in (1, 2, 5, 10):
+           candidate = m * (10 ** exp)
+           if candidate >= size_max:
+               upper = candidate
+               break
+        upper = min(upper, 1000)
+    
+        ax = plt.gca()
+        ax.set_yscale("linear")
+        ax.set_ylim(0, upper)
+      
+        plt.xlabel("Version")
+        plt.ylabel("Cumulative size (MB)")
+        plt.title(f"Cumulative store size – {dataset}")
+        safe_save(out_dir / f"{dataset}_cumulative_size.png")
 
 def plot_vm(vm_df_p: pd.DataFrame, vm_df_po: pd.DataFrame, sparql_df: pd.DataFrame, out_dir: Path, tag: str):
     if (vm_df_p is None and vm_df_po is None) or (vm_df_p.empty and vm_df_po.empty):
@@ -279,9 +277,6 @@ def plot_vq(vq_df_p: pd.DataFrame, vq_df_po: pd.DataFrame, insertion_df: pd.Data
 # Driver
 # ---------------------------------------
 def visualize(dataset: str, measurements_path: str):
-    """
-    results_dir contains: <prefix>_insertion.csv, <prefix>_vm.csv, <prefix>_dm.csv, <prefix>_vq.csv
-    """
     logging.info(f"Processing {dataset}")
 
     csv_path = f"{measurements_path}/{dataset}"

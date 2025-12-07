@@ -85,7 +85,7 @@ def parse_eval_stdout_to_csv(log_path: Path, vm_csv: Path, dm_csv: Path, vq_csv:
                     i += 1
                     block, i = _collect_table(lines, i)
                     if vm_rows:
-                        vm_rows.extend(block[1:])  # drop header after first
+                        vm_rows.extend(block[1:])
                     else:
                         vm_rows.extend(block)
                     continue

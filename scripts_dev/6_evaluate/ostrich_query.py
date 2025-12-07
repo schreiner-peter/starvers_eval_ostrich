@@ -42,12 +42,6 @@ with open("/ostrich_eval/configs", mode="rb") as config_file:
 
 ###################################### Helper functions ######################################
 def to_list(result: Wrapper.QueryResult) -> list:
-    """
-
-    :param result:
-    :return: Dataframe
-    """
-
     results = result.convert()
 
     def format_value(res_value):
@@ -119,6 +113,7 @@ for dataset in datasets:
     for query_set in query_sets:
         failed = False
         for query_version in range(query_set_versions):
+            print(f"Querying query-set {query_set} for version:{query_version} in dataset:{dataset}")
             if failed:
                 break
             query_set_version = final_queries + "/" + dataset + "/" + query_set  +  "/" + str(query_version)
@@ -126,7 +121,6 @@ for dataset in datasets:
 
             logger.info(f"Query set version: {query_set_version}")
             for query_file_name in os.listdir(query_set_version):
-                print(f"Querying query:{query_file_name} for query_set:{query_set} in dataset:{dataset}")
                 execution_time = 0
                 result_set_creation_time = 0
 

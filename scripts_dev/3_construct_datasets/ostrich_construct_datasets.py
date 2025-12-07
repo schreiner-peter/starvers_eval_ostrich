@@ -27,21 +27,6 @@ def construct_snapshot(dst_dir: str, snapshots_dir: str, basename_length: int):
 
     with open(file_path_snapshot, "w") as file_snapshot:
         file_snapshot.write(snapshot_str)
-  
-def construct_empty_version(dst_dir: str):
-    logging.info("Constructing change set for v1 ...")
-
-    v1_dir = f"{dst_dir}/1"
-    if not os.path.exists(v1_dir):
-        logging.info(f"Create directory: {v1_dir}")
-        os.makedirs(v1_dir)
-
-    file_path_added =  f"{dst_dir}/1/main.nt.additions.txt"
-    file_path_deleted = f"{dst_dir}/1/main.nt.deletions.txt"
-
-    with open(file_path_added, "w") as file_added, open(file_path_deleted, "w") as file_deleted:
-        file_added.write("")
-        file_deleted.write("")
 
 def construct_dataset(dst_dir: str, snapshots_dir: str, end_vers: int, basename_length: int):
     if not os.path.exists(dst_dir):
@@ -49,7 +34,11 @@ def construct_dataset(dst_dir: str, snapshots_dir: str, end_vers: int, basename_
         os.makedirs(dst_dir)
 
     construct_snapshot(dst_dir, snapshots_dir, basename_length)
-    #construct_empty_version(dst_dir)
+    
+    delta_dir = f"{dst_dir}/alldata.CB.nt"
+    if not os.path.exists(delta_dir):
+        logging.info("Create directory: " + delta_dir)
+        os.makedirs(delta_dir)
 
     cnt_net_triples_added = 0    
     cnt_triples_rdf_star = 0
@@ -57,11 +46,6 @@ def construct_dataset(dst_dir: str, snapshots_dir: str, end_vers: int, basename_
 
     for i in range(1, end_vers):
         logging.info(f"Constructing changeset for v{i} ...")
-
-        v_dir = f"{dst_dir}/{i}"
-        if not os.path.exists(v_dir):
-            logging.info(f"Create directory: {v_dir}")
-            os.makedirs(v_dir)
 
         ic1_ds_path = "{0}/{1}.nt".format(snapshots_dir, str(i).zfill(basename_length))
         ic2_ds_path = "{0}/{1}.nt".format(snapshots_dir, str(i+1).zfill(basename_length))
@@ -82,8 +66,8 @@ def construct_dataset(dst_dir: str, snapshots_dir: str, end_vers: int, basename_
         cnt_triples_rdf_star += len(cs_added) + (len(ic1) if i == 1 else 0)
         cnt_valid_triples_last_ic = len(ic2) if i == end_vers - 1 else 0
 
-        logging.info("Create {0}/main.nt.additions.txt with {1} triples.".format(i, len(cs_added)))
-        file_path_added = f"{v_dir}/main.nt.additions.txt"
+        logging.info("Create data-added_{0}-{1}.nt with {2} triples.".format(i, i+1, len(cs_added)))
+        file_path_added = f"{delta_dir}/data-added_{i}-{i+1}.nt"
         with open(file_path_added, "w") as cs_added_file:
             cs_added_file.write(cs_added_str)
         cs_added, cs_added_str = None, None
@@ -91,8 +75,8 @@ def construct_dataset(dst_dir: str, snapshots_dir: str, end_vers: int, basename_
         cs_deleted_str = "\n".join(triple for triple in cs_deleted)
         cnt_net_triples_added -= len(cs_deleted)
 
-        logging.info("Create {0}/main.nt.deletions.txt with {1} triples.".format(i, len(cs_deleted)))
-        file_path_deleted = f"{v_dir}/main.nt.deletions.txt"
+        logging.info("Create data-deleted_{0}-{1}.nt with {2} triples.".format(i, i+1, len(cs_deleted)))
+        file_path_deleted = f"{delta_dir}/data-deleted_{i}-{i+1}.nt"
         with open(file_path_deleted, "w") as cs_deleted_file:
             cs_deleted_file.write(cs_deleted_str)
         cs_deleted, cs_deleted_str = None, None
