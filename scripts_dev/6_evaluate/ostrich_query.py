@@ -12,6 +12,8 @@ from datetime import datetime
 from datetime import timezone
 
 ############################################# Logging ###################################################################
+if not os.path.exists('/ostrich_eval/output/logs/evaluate'):
+    os.makedirs('/ostrich_eval/output/logs/evaluate')
 logger.basicConfig(handlers=[logger.FileHandler(filename="/ostrich_eval/output/logs/evaluate/query.txt", 
                                                   encoding='utf-8', mode='a+')],
                     format="%(asctime)s %(name)s:%(levelname)s:%(message)s", 
